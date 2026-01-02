@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Productivity Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GitHub Productivity Tracker</h1>
+            <p class="subtitle">Daily lines of code analysis</p>
+        </header>
+
+        <div class="controls">
+            <button id="refreshBtn" class="btn btn-primary">Refresh Data</button>
+            <span id="lastUpdated" class="last-updated"></span>
+        </div>
+
+        <div class="summary-cards">
+            <div class="card">
+                <h3>Total Net Lines</h3>
+                <p class="metric" id="totalNetLines">-</p>
+            </div>
+            <div class="card">
+                <h3>Total Commits</h3>
+                <p class="metric" id="totalCommits">-</p>
+            </div>
+            <div class="card">
+                <h3>Average Daily Lines</h3>
+                <p class="metric" id="avgDailyLines">-</p>
+            </div>
+            <div class="card">
+                <h3>Days with Commits</h3>
+                <p class="metric" id="daysWithCommits">-</p>
+            </div>
+        </div>
+
+        <div class="charts">
+            <div class="chart-container">
+                <h2>Daily Net Lines</h2>
+                <div id="dailyChart"></div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <h2>Daily Breakdown</h2>
+            <table id="statsTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Commits</th>
+                        <th>Additions</th>
+                        <th>Deletions</th>
+                        <th>Net Lines</th>
+                        <th>Repositories</th>
+                    </tr>
+                </thead>
+                <tbody id="statsTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
