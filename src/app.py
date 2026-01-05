@@ -3,14 +3,14 @@
 import json
 import os
 from pathlib import Path
-from flask import Flask, jsonify, send_from_directory, render_template_string
-from datetime import datetime, timedelta
+from flask import Flask, jsonify, request, send_from_directory
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from src.github_fetcher import GitHubFetcher
-from src.data_processor import DataProcessor
+from src.github_fetcher import load_users_config
+from src.cache_builder import load_dashboard_cache, build_dashboard_cache
 
 # Get absolute paths relative to this file's location
 BASE_DIR = Path(__file__).parent.parent
@@ -18,65 +18,132 @@ DASHBOARD_DIR = BASE_DIR / "dashboard"
 
 app = Flask(__name__, static_folder=str(DASHBOARD_DIR), static_url_path="")
 
-# Cache processed data
-_cache = {"daily_stats": None, "summary": None, "updated_at": None}
+# In-memory cache (loaded from pre-processed file)
+_dashboard_data = None
+_loaded_at = None
 
 
-def load_data(force_refresh: bool = False):
-    """Load commit data from cache or GitHub"""
-    global _cache
+def get_dashboard_data(force_refresh: bool = False) -> dict:
+    """
+    Load dashboard data from pre-processed cache file.
+    Much faster than reading individual repo cache files.
+    """
+    global _dashboard_data, _loaded_at
 
-    if _cache["daily_stats"] and not force_refresh:
-        return _cache["daily_stats"], _cache["summary"]
+    if _dashboard_data and not force_refresh:
+        return _dashboard_data
 
-    token = os.getenv("GITHUB_TOKEN")
-    username = os.getenv("GITHUB_USERNAME", "jasonmotylinski")
+    # Try to load from pre-processed cache
+    cache_data = load_dashboard_cache()
 
-    if not token:
-        raise ValueError("GITHUB_TOKEN not configured")
+    if cache_data:
+        _dashboard_data = cache_data
+        _loaded_at = datetime.now().isoformat()
+        return _dashboard_data
 
-    fetcher = GitHubFetcher(token, username)
-    commits = fetcher.fetch_all_commits(use_cache=True)
+    # Cache doesn't exist - build it
+    print("Dashboard cache not found, building...")
+    _dashboard_data = build_dashboard_cache()
+    _loaded_at = datetime.now().isoformat()
+    return _dashboard_data
 
-    processor = DataProcessor()
-    daily_stats = processor.process_commits(commits)
-    summary = processor.calculate_summary(daily_stats)
 
-    _cache["daily_stats"] = daily_stats
-    _cache["summary"] = summary
-    _cache["updated_at"] = datetime.now().isoformat()
+def get_all_users_data() -> dict:
+    """Get all users' data formatted for API response"""
+    data = get_dashboard_data()
+    users_data = data.get("users", {})
 
-    return daily_stats, summary
+    result = {}
+    for username, user_data in users_data.items():
+        result[username] = {
+            "daily_stats": user_data.get("daily_stats", {}),
+            "summary": user_data.get("summary", {}),
+            "updated_at": data.get("generated_at")
+        }
+
+    return result
+
+
+@app.route("/api/users")
+def get_users():
+    """Get list of configured users"""
+    users = load_users_config()
+    return jsonify(users)
+
+
+@app.route("/api/users/all/stats")
+def get_all_users_stats():
+    """Get stats for all configured users"""
+    try:
+        all_data = get_all_users_data()
+        return jsonify(all_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/daily-stats")
 def get_daily_stats():
-    """Get daily statistics"""
+    """Get daily statistics for a specific user"""
+    username = request.args.get("user")
+
     try:
-        daily_stats, _ = load_data()
-        return jsonify(daily_stats)
+        all_data = get_all_users_data()
+
+        if not username:
+            return jsonify({u: d["daily_stats"] for u, d in all_data.items()})
+
+        if username in all_data:
+            return jsonify(all_data[username]["daily_stats"])
+        else:
+            return jsonify({"error": f"User {username} not found"}), 404
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/summary")
 def get_summary():
-    """Get summary statistics"""
+    """Get summary statistics for a specific user"""
+    username = request.args.get("user")
+
     try:
-        _, summary = load_data()
-        return jsonify({
-            "summary": summary,
-            "updated_at": _cache["updated_at"]
-        })
+        all_data = get_all_users_data()
+
+        if not username:
+            return jsonify({u: {"summary": d["summary"], "updated_at": d.get("updated_at")} for u, d in all_data.items()})
+
+        if username in all_data:
+            return jsonify({
+                "summary": all_data[username]["summary"],
+                "updated_at": all_data[username].get("updated_at")
+            })
+        else:
+            return jsonify({"error": f"User {username} not found"}), 404
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/timeline")
 def get_timeline():
-    """Get timeline data with optional date range filtering"""
+    """Get timeline data for a specific user"""
+    username = request.args.get("user")
+
     try:
-        daily_stats, summary = load_data()
+        all_data = get_all_users_data()
+
+        if not username:
+            users = list(all_data.keys())
+            if users:
+                username = users[0]
+            else:
+                return jsonify({"error": "No users configured"}), 400
+
+        if username not in all_data:
+            return jsonify({"error": f"User {username} not found"}), 404
+
+        daily_stats = all_data[username]["daily_stats"]
+        summary = all_data[username]["summary"]
 
         # Convert to timeline format
         timeline = []
@@ -88,24 +155,43 @@ def get_timeline():
 
         return jsonify({
             "timeline": timeline,
-            "summary": summary
+            "summary": summary,
+            "username": username
         })
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/refresh", methods=["POST"])
 def refresh_data():
-    """Manually trigger data refresh from GitHub"""
+    """Rebuild the dashboard cache"""
+    global _dashboard_data, _loaded_at
+
     try:
-        daily_stats, summary = load_data(force_refresh=True)
+        # Rebuild the dashboard cache from raw data
+        _dashboard_data = build_dashboard_cache()
+        _loaded_at = datetime.now().isoformat()
+
+        all_data = get_all_users_data()
         return jsonify({
             "success": True,
-            "summary": summary,
-            "updated_at": _cache["updated_at"]
+            "users": list(all_data.keys()),
+            "generated_at": _dashboard_data.get("generated_at")
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/cache-info")
+def cache_info():
+    """Get information about the dashboard cache"""
+    data = get_dashboard_data()
+    return jsonify({
+        "generated_at": data.get("generated_at"),
+        "loaded_at": _loaded_at,
+        "users": list(data.get("users", {}).keys())
+    })
 
 
 @app.route("/")

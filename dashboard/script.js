@@ -1,176 +1,236 @@
 /**
- * GitHub Productivity Tracker Dashboard
+ * GitHub Productivity Tracker Dashboard - Monthly Comparison
  */
 
-let dailyStats = {};
-let summary = {};
+let allUsersData = {};
 
-// Initialize dashboard on page load
 document.addEventListener('DOMContentLoaded', () => {
-    loadData();
+    // Set default end date to current month
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    document.getElementById('endDate').value = currentMonth;
+
+    loadAllUsersData();
     setupEventListeners();
 });
 
 function setupEventListeners() {
-    document.getElementById('refreshBtn').addEventListener('click', refreshData);
+    document.getElementById('compareBtn').addEventListener('click', loadAllUsersData);
+
+    // Allow Enter key to trigger comparison
+    document.getElementById('user1').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') loadAllUsersData();
+    });
+    document.getElementById('user2').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') loadAllUsersData();
+    });
 }
 
-async function loadData() {
+function getDateRange() {
+    const startDate = document.getElementById('startDate').value || '2023-01';
+    const endDate = document.getElementById('endDate').value || getCurrentMonth();
+    return { startDate, endDate };
+}
+
+function getCurrentMonth() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getSelectedUsers() {
+    const user1 = document.getElementById('user1').value.trim();
+    const user2 = document.getElementById('user2').value.trim();
+    return [user1, user2].filter(u => u.length > 0);
+}
+
+async function loadAllUsersData() {
+    const container = document.getElementById('mainContent');
+    const selectedUsers = getSelectedUsers();
+
+    if (selectedUsers.length < 2) {
+        container.innerHTML = `<div class="error-message">Please enter two usernames to compare.</div>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading data...</p>
+        </div>
+    `;
+
     try {
-        // Load summary data
-        const summaryResp = await fetch('/api/summary');
-        const summaryData = await summaryResp.json();
-        summary = summaryData.summary;
+        const resp = await fetch('/api/users/all/stats');
+        allUsersData = await resp.json();
 
-        // Load daily stats
-        const statsResp = await fetch('/api/daily-stats');
-        dailyStats = await statsResp.json();
+        if (allUsersData.error) {
+            container.innerHTML = `<div class="error-message">${allUsersData.error}</div>`;
+            return;
+        }
 
-        // Update UI
-        updateSummary(summary);
-        updateTable(dailyStats);
-        updateChart(dailyStats);
-        updateLastUpdated(summaryData.updated_at);
+        // Filter to only selected users
+        const filteredData = {};
+        const missingUsers = [];
+
+        selectedUsers.forEach(username => {
+            if (allUsersData[username]) {
+                filteredData[username] = allUsersData[username];
+            } else {
+                missingUsers.push(username);
+            }
+        });
+
+        if (missingUsers.length > 0) {
+            container.innerHTML = `<div class="error-message">User(s) not found in cache: ${missingUsers.join(', ')}<br><br>Make sure the users are configured in config/users.json.</div>`;
+            return;
+        }
+
+        renderMonthlyComparison(filteredData, selectedUsers);
     } catch (error) {
         console.error('Error loading data:', error);
-        showError('Failed to load data');
+        container.innerHTML = `<div class="error-message">Failed to load data: ${error.message}</div>`;
     }
 }
 
-async function refreshData() {
-    try {
-        const btn = document.getElementById('refreshBtn');
-        btn.disabled = true;
-        btn.textContent = 'Refreshing...';
+function aggregateByMonth(dailyStats) {
+    const monthly = {};
 
-        const resp = await fetch('/api/refresh', { method: 'POST' });
-        const data = await resp.json();
-
-        if (data.success) {
-            await loadData();
-            showSuccess('Data refreshed successfully');
-        } else {
-            showError(data.error || 'Failed to refresh data');
+    for (const [date, stats] of Object.entries(dailyStats)) {
+        const month = date.substring(0, 7); // YYYY-MM
+        if (!monthly[month]) {
+            monthly[month] = { absolute: 0, commits: 0, additions: 0, deletions: 0 };
         }
-    } catch (error) {
-        console.error('Error refreshing data:', error);
-        showError('Failed to refresh data');
-    } finally {
-        const btn = document.getElementById('refreshBtn');
-        btn.disabled = false;
-        btn.textContent = 'Refresh Data';
+        monthly[month].absolute += stats.additions + stats.deletions;
+        monthly[month].commits += stats.commits;
+        monthly[month].additions += stats.additions;
+        monthly[month].deletions += stats.deletions;
     }
+
+    return monthly;
 }
 
-function updateSummary(summary) {
-    document.getElementById('totalNetLines').textContent =
-        formatNumber(summary.net_lines || 0);
-    document.getElementById('totalCommits').textContent =
-        formatNumber(summary.total_commits || 0);
-    document.getElementById('avgDailyLines').textContent =
-        formatNumber(Math.round(summary.avg_daily_lines || 0));
-    document.getElementById('daysWithCommits').textContent =
-        formatNumber(summary.total_days || 0);
-}
+function renderMonthlyComparison(usersData, selectedUsers) {
+    const container = document.getElementById('mainContent');
+    const usernames = selectedUsers || Object.keys(usersData);
 
-function updateTable(dailyStats) {
-    const tbody = document.getElementById('statsTableBody');
-    tbody.innerHTML = '';
-
-    // Sort dates in reverse chronological order
-    const dates = Object.keys(dailyStats).sort().reverse();
-
-    dates.forEach(date => {
-        const stats = dailyStats[date];
-        const repos = Array.isArray(stats.repositories) ? stats.repositories.join(', ') : '';
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${date}</td>
-            <td>${stats.commits}</td>
-            <td style="color: green;">+${stats.additions}</td>
-            <td style="color: red;">-${stats.deletions}</td>
-            <td style="font-weight: bold; color: ${stats.net_lines >= 0 ? 'green' : 'red'};">
-                ${stats.net_lines >= 0 ? '+' : ''}${stats.net_lines}
-            </td>
-            <td class="repos-cell">${repos}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-function updateChart(dailyStats) {
-    // Simple chart implementation - you may want to use Chart.js
-    // For now, we'll create a placeholder
-    const chartContainer = document.getElementById('dailyChart');
-
-    // This would be replaced with actual charting library like Chart.js
-    console.log('Chart data ready', dailyStats);
-
-    // Example using a simple bar visualization
-    const dates = Object.keys(dailyStats).sort();
-    const netLines = dates.map(d => dailyStats[d].net_lines);
-
-    // Create a simple SVG visualization
-    createSimpleChart(chartContainer, dates, netLines);
-}
-
-function createSimpleChart(container, dates, values) {
-    // Basic chart creation - replace with Chart.js for better visualization
-    if (!values || values.length === 0) {
-        container.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">No data available</p>';
+    if (usernames.length === 0) {
+        container.innerHTML = '<div class="error-message">No users configured.</div>';
         return;
     }
 
-    const maxValue = Math.max(...values.map(Math.abs));
-    if (maxValue === 0) {
-        container.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">No data available</p>';
+    // Aggregate monthly data for each user
+    const monthlyByUser = {};
+    const allMonths = new Set();
+
+    usernames.forEach(username => {
+        const dailyStats = usersData[username]?.daily_stats || {};
+        monthlyByUser[username] = aggregateByMonth(dailyStats);
+        Object.keys(monthlyByUser[username]).forEach(m => allMonths.add(m));
+    });
+
+    // Get date range and filter months
+    const { startDate, endDate } = getDateRange();
+    const months = Array.from(allMonths)
+        .filter(m => m >= startDate && m <= endDate)
+        .sort()
+        .reverse();
+
+    if (months.length === 0) {
+        container.innerHTML = '<div class="error-message">No data available for the selected date range.</div>';
         return;
     }
 
-    const width = Math.min(800, Math.max(400, dates.length * 20));
-    const height = 300;
-    const barWidth = width / dates.length;
-
-    let svg = `<svg width="${width}" height="${height}" style="border: 1px solid #e0e0e0; display: block;">`;
-
-    // Draw baseline
-    svg += `<line x1="0" y1="${height/2}" x2="${width}" y2="${height/2}" stroke="#ccc" stroke-width="1"/>`;
-
-    // Draw bars
-    values.forEach((value, i) => {
-        const barHeight = (value / maxValue) * (height / 2 - 20);
-        const x = i * barWidth;
-        const y = value >= 0 ?
-            height / 2 - barHeight :
-            height / 2;
-
-        svg += `<rect x="${x + 2}" y="${y}" width="${barWidth - 4}" height="${Math.abs(barHeight)}"
-                fill="${value >= 0 ? '#28a745' : '#dc3545'}" opacity="0.7"/>`;
+    // Calculate totals for each user (only months in filtered range)
+    const userTotals = {};
+    usernames.forEach(username => {
+        userTotals[username] = months.reduce((sum, month) => {
+            const data = monthlyByUser[username][month];
+            return sum + (data ? data.absolute : 0);
+        }, 0);
     });
 
-    svg += '</svg>';
+    // Find max total for indicator
+    const maxTotal = Math.max(...Object.values(userTotals));
 
-    container.innerHTML = svg;
-}
+    // Helper to get indicator between two values with percentage
+    function getIndicator(val1, val2) {
+        if (val1 === 0 && val2 === 0) return '<span class="indicator">―</span>';
+        if (val1 === val2) return '<span class="indicator">―</span>';
 
-function updateLastUpdated(timestamp) {
-    const element = document.getElementById('lastUpdated');
-    if (timestamp) {
-        const date = new Date(timestamp);
-        element.textContent = `Updated: ${date.toLocaleString()}`;
+        const winner = Math.max(val1, val2);
+        const loser = Math.min(val1, val2);
+        const pct = loser > 0 ? Math.round(((winner - loser) / loser) * 100) : 100;
+
+        if (val1 > val2) {
+            return `<span class="indicator left">◀ ${pct}%</span>`;
+        } else {
+            return `<span class="indicator right">${pct}% ▶</span>`;
+        }
     }
+
+    // Build the comparison table (assumes 2 users)
+    const user1 = usernames[0];
+    const user2 = usernames[1];
+
+    let html = `
+        <div class="comparison-section">
+            <h2>Lines Changed by Month</h2>
+            <p class="table-subtitle">Total lines touched (additions + deletions)</p>
+            <div class="table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th class="month-col">Month</th>
+                            <th class="user-col"><a href="user.html?username=${encodeURIComponent(user1)}&startDate=${startDate}&endDate=${endDate}" class="user-link">${formatUsername(user1)}</a></th>
+                            <th class="indicator-col"></th>
+                            <th class="user-col"><a href="user.html?username=${encodeURIComponent(user2)}&startDate=${startDate}&endDate=${endDate}" class="user-link">${formatUsername(user2)}</a></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="totals-row">
+                            <td><strong>TOTAL</strong></td>
+                            <td class="${userTotals[user1] >= userTotals[user2] ? 'winner' : ''}">
+                                <strong>${formatAbsolute(userTotals[user1])}</strong>
+                            </td>
+                            <td class="indicator-cell">${getIndicator(userTotals[user1], userTotals[user2])}</td>
+                            <td class="${userTotals[user2] >= userTotals[user1] ? 'winner' : ''}">
+                                <strong>${formatAbsolute(userTotals[user2])}</strong>
+                            </td>
+                        </tr>
+                        ${months.map(month => {
+                            const data1 = monthlyByUser[user1][month];
+                            const data2 = monthlyByUser[user2][month];
+                            const abs1 = data1 ? data1.absolute : 0;
+                            const abs2 = data2 ? data2.absolute : 0;
+                            return `
+                                <tr>
+                                    <td class="month-cell">${formatMonth(month)}</td>
+                                    <td class="${abs1 > abs2 ? 'winner' : ''}">${abs1 > 0 ? formatAbsolute(abs1) : '-'}</td>
+                                    <td class="indicator-cell">${getIndicator(abs1, abs2)}</td>
+                                    <td class="${abs2 > abs1 ? 'winner' : ''}">${abs2 > 0 ? formatAbsolute(abs2) : '-'}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
 }
 
-function formatNumber(num) {
+function formatUsername(username) {
+    // Remove common suffixes for cleaner display
+    return username.replace(/-gcmlp$/, '').replace(/-gcm$/, '');
+}
+
+function formatMonth(monthStr) {
+    const [year, month] = monthStr.split('-');
+    const date = new Date(year, parseInt(month) - 1);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+}
+
+function formatAbsolute(num) {
     return num.toLocaleString();
-}
-
-function showError(message) {
-    console.error(message);
-    // TODO: Show toast or alert
-}
-
-function showSuccess(message) {
-    console.log(message);
-    // TODO: Show toast
 }

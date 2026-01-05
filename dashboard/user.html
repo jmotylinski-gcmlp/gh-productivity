@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Stats - GitHub Productivity Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="pageTitle">User Stats</h1>
+            <p class="subtitle">Lines Changed Over Time</p>
+            <a href="index.html" class="back-link">&larr; Back to Comparison</a>
+        </header>
+
+        <div id="mainContent">
+            <div class="chart-section">
+                <div class="chart-container">
+                    <canvas id="linesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="user.js"></script>
+</body>
+</html>

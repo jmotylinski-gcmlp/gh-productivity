@@ -12,12 +12,13 @@ class DataProcessor:
     def __init__(self):
         self.cache_dir = Path("data/cache")
 
-    def process_commits(self, commits: list) -> dict:
+    def process_commits(self, commits: list, username: str = None) -> dict:
         """
         Aggregate commits into daily statistics
 
         Args:
             commits: List of commit dictionaries from github_fetcher
+            username: Optional username to include in output
 
         Returns:
             Dictionary with daily statistics
@@ -44,20 +45,22 @@ class DataProcessor:
                 daily_stats[date_str]["additions"] - daily_stats[date_str]["deletions"]
             )
             daily_stats[date_str]["repositories"] = list(daily_stats[date_str]["repositories"])
+            if username:
+                daily_stats[date_str]["username"] = username
 
         return dict(sorted(daily_stats.items()))
 
-    def calculate_summary(self, daily_stats: dict) -> dict:
+    def calculate_summary(self, daily_stats: dict, username: str = None) -> dict:
         """Calculate summary statistics across all days"""
         if not daily_stats:
-            return {}
+            return {"username": username} if username else {}
 
         total_additions = sum(s["additions"] for s in daily_stats.values())
         total_deletions = sum(s["deletions"] for s in daily_stats.values())
         total_commits = sum(s["commits"] for s in daily_stats.values())
         total_days = len(daily_stats)
 
-        return {
+        result = {
             "total_additions": total_additions,
             "total_deletions": total_deletions,
             "net_lines": total_additions - total_deletions,
@@ -66,3 +69,30 @@ class DataProcessor:
             "avg_daily_lines": (total_additions - total_deletions) / total_days if total_days > 0 else 0,
             "avg_commits_per_day": total_commits / total_days if total_days > 0 else 0
         }
+
+        if username:
+            result["username"] = username
+
+        return result
+
+    def process_all_users(self, all_commits: dict) -> dict:
+        """
+        Process commits for all users
+
+        Args:
+            all_commits: Dictionary mapping username to list of commits
+
+        Returns:
+            Dictionary mapping username to their processed stats
+        """
+        results = {}
+
+        for username, commits in all_commits.items():
+            daily_stats = self.process_commits(commits, username)
+            summary = self.calculate_summary(daily_stats, username)
+            results[username] = {
+                "daily_stats": daily_stats,
+                "summary": summary
+            }
+
+        return results
