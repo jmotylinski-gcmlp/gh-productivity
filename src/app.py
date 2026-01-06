@@ -1,5 +1,6 @@
 """Flask web backend for productivity dashboard"""
 
+import csv
 import json
 import os
 from pathlib import Path
@@ -11,12 +12,12 @@ load_dotenv()
 
 from src.github.github_fetcher import load_users_config
 from src.github.github_processor import load_dashboard_cache, build_dashboard_cache
-from src.jira.jira_processor import load_cached_issues, extract_in_progress_cycles
 
 # Get absolute paths relative to this file's location
 BASE_DIR = Path(__file__).parent.parent
 DASHBOARD_DIR = BASE_DIR / "dashboard"
 CONFIG_PATH = BASE_DIR / "config.json"
+JIRA_CSV_PATH = BASE_DIR / "data" / "exports" / "jira" / "user_issues.csv"
 
 # Ensure data directories exist (required for Azure deployment)
 (BASE_DIR / "data" / "cache").mkdir(parents=True, exist_ok=True)
@@ -226,20 +227,21 @@ def index():
 # ============ JIRA API Endpoints ============
 
 def get_jira_cycles() -> list:
-    """Load all JIRA cycles from cached issues"""
-    all_issues = load_cached_issues()
+    """Load all JIRA cycles from CSV export file"""
     all_cycles = []
 
-    for project_key, issues in all_issues.items():
-        for issue in issues:
-            cycles = extract_in_progress_cycles(issue)
-            for cycle in cycles:
-                all_cycles.append({
-                    "key": cycle[0],
-                    "assignee_email": cycle[1],
-                    "in_progress_at": cycle[2],
-                    "out_of_progress_at": cycle[3]
-                })
+    if not JIRA_CSV_PATH.exists():
+        return all_cycles
+
+    with open(JIRA_CSV_PATH, 'r', newline='') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            all_cycles.append({
+                "key": row.get("key"),
+                "assignee_email": row.get("assignee_email"),
+                "in_progress_at": row.get("in_progress_at"),
+                "out_of_progress_at": row.get("out_of_progress_at")
+            })
 
     return all_cycles
 
