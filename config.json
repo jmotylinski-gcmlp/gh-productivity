@@ -1,0 +1,302 @@
+{
+  "organizations": [
+    "GCMGrosvenor"
+  ],
+  "jira": {
+    "base_url": "https://gcmlp1.atlassian.net/"
+  },
+  "user_mappings": [
+    {
+      "github": "HiltonGiesenow",
+      "jira": "hgiesenow@gcmlp.com"
+    },
+    {
+      "github": "JMKoon",
+      "jira": "jkoon@gcmlp.com"
+    },
+    {
+      "github": "aluna-gcmlp",
+      "jira": "aluna@gcmlp.com"
+    },
+    {
+      "github": "amanero-gcmlp",
+      "jira": "amanero@gcmlp.com"
+    },
+    {
+      "github": "amoreno-gcm",
+      "jira": "amoreno@gcmlp.com"
+    },
+    {
+      "github": "ashek-gcmlp",
+      "jira": "ashek@gcmlp.com"
+    },
+    {
+      "github": "bbarvish-gcmlp",
+      "jira": "bbarvish@gcmlp.com"
+    },
+    {
+      "github": "bjoshi-gcmlp",
+      "jira": "bjoshi@gcmlp.com"
+    },
+    {
+      "github": "bmatsushita-gcmlp",
+      "jira": "bmatsushita@gcmlp.com"
+    },
+    {
+      "github": "bokkema-gcmlp",
+      "jira": "bokkema@gcmlp.com"
+    },
+    {
+      "github": "cadamsgcmlp",
+      "jira": "cadams@gcmlp.com"
+    },
+    {
+      "github": "ckrisnik-GCMLP",
+      "jira": "ckrisnik@gcmlp.com"
+    },
+    {
+      "github": "cnelson-gcmlp",
+      "jira": "cnelson@gcmlp.com"
+    },
+    {
+      "github": "csmith-gcmlp",
+      "jira": "csmith@gcmlp.com"
+    },
+    {
+      "github": "datimmer",
+      "jira": "datimmer@gcmlp.com"
+    },
+    {
+      "github": "dsilverio-gcmlp",
+      "jira": "dsilverio@gcmlp.com"
+    },
+    {
+      "github": "echang-gcmlp",
+      "jira": "echang@gcmlp.com"
+    },
+    {
+      "github": "erschnoor-gcm",
+      "jira": "erschnoor@gcmlp.com"
+    },
+    {
+      "github": "etudor-gcmlp",
+      "jira": "etudor@gcmlp.com"
+    },
+    {
+      "github": "fagrela-gcmlp",
+      "jira": "fagrela@gcmlp.com"
+    },
+    {
+      "github": "fdario-gcm",
+      "jira": "fdario@gcmlp.com"
+    },
+    {
+      "github": "fgodinho-gcmlp",
+      "jira": "fgodinho@gcmlp.com"
+    },
+    {
+      "github": "fmarks-gcmlp",
+      "jira": "fmarks@gcmlp.com"
+    },
+    {
+      "github": "gcook-gcmlp",
+      "jira": "gcook@gcmlp.com"
+    },
+    {
+      "github": "gmenezes-gcmlp",
+      "jira": "gmenezes@gcmlp.com"
+    },
+    {
+      "github": "gsaharia-gcm",
+      "jira": "gsaharia@gcmlp.com"
+    },
+    {
+      "github": "gwang-gcmlp",
+      "jira": "gwang@gcmlp.com"
+    },
+    {
+      "github": "haimizrael",
+      "jira": "hizrael@gcmlp.com"
+    },
+    {
+      "github": "hnunez-gcm",
+      "jira": "hnunez@gcmlp.com"
+    },
+    {
+      "github": "ixu-gcm",
+      "jira": "ixu@gcmlp.com"
+    },
+    {
+      "github": "jasonmotylinski",
+      "jira": "jmotylinski@gcmlp.com"
+    },
+    {
+      "github": "jcohen-gcm",
+      "jira": "jcohen@gcmlp.com"
+    },
+    {
+      "github": "jmotylinski-gcmlp",
+      "jira": "jmotylinski@gcmlp.com"
+    },
+    {
+      "github": "jrogers-gcmlp",
+      "jira": "jrogers@gcmlp.com"
+    },
+    {
+      "github": "jvaswani-gcmlp",
+      "jira": "jvaswani@gcmlp.com"
+    },
+    {
+      "github": "jzhagui-gcmlp",
+      "jira": "jzhagui@gcmlp.com"
+    },
+    {
+      "github": "kthomas-gcm",
+      "jira": "kthomas@gcmlp.com"
+    },
+    {
+      "github": "lalfonso-gcmlp",
+      "jira": "aalonso@gcmlp.com"
+    },
+    {
+      "github": "lchinel-gcmlp",
+      "jira": "lchinelli@gcmlp.com"
+    },
+    {
+      "github": "lkatz-gcmlp",
+      "jira": "lkatz@gcmlp.com"
+    },
+    {
+      "github": "lmingorance-gcm",
+      "jira": "lmingorance@gcmlp.com"
+    },
+    {
+      "github": "ltrochmann-gcmlp",
+      "jira": "ltrochmann@gcmlp.com"
+    },
+    {
+      "github": "mavieira-gcm",
+      "jira": "mavieira@gcmlp.com"
+    },
+    {
+      "github": "max-reznik-gcmlp",
+      "jira": "mreznik@gcmlp.com"
+    },
+    {
+      "github": "mblanchard-gcmlp",
+      "jira": "mblanchard@gcmlp.com"
+    },
+    {
+      "github": "mbulling-gcm",
+      "jira": "msullivan@gcmlp.com"
+    },
+    {
+      "github": "mgaryGCM",
+      "jira": "mgary@gcmlp.com"
+    },
+    {
+      "github": "mikekonstorum",
+      "jira": "mkonstorum@gcmlp.com"
+    },
+    {
+      "github": "mlawrence-gcm",
+      "jira": "mlawrence@gcmlp.com"
+    },
+    {
+      "github": "mpinello-gcmlp",
+      "jira": "mpinello@gcmlp.com"
+    },
+    {
+      "github": "mprice-gcmlp",
+      "jira": "mprice@gcmlp.com"
+    },
+    {
+      "github": "mraiyani-gcmlp",
+      "jira": "mraiyani@gcmlp.com"
+    },
+    {
+      "github": "mshivakumar-gcmlp",
+      "jira": "mshivakumar@gcmlp.com"
+    },
+    {
+      "github": "msmall-gcmlp",
+      "jira": "shall@gcmlp.com"
+    },
+    {
+      "github": "mstec-gcmlp",
+      "jira": "mstec@gcmlp.com"
+    },
+    {
+      "github": "mwolin-gcmlp",
+      "jira": "mwolin@gcmlp.com"
+    },
+    {
+      "github": "nbeharovic-gcmlp",
+      "jira": "nbeharovic@gcmlp.com"
+    },
+    {
+      "github": "npopovski-gcmlp",
+      "jira": "npopovski@gcmlp.com"
+    },
+    {
+      "github": "ppearson-gcmlp",
+      "jira": "ppearson@gcmlp.com"
+    },
+    {
+      "github": "rbradburygcmlp",
+      "jira": "rbradbury@gcmlp.com"
+    },
+    {
+      "github": "rfloresGCM",
+      "jira": "rflores@gcmlp.com"
+    },
+    {
+      "github": "rpetrelis-gcmlp",
+      "jira": "rpetrelis@gcmlp.com"
+    },
+    {
+      "github": "rsimoes-gcmlp",
+      "jira": "rsimoes@gcmlp.com"
+    },
+    {
+      "github": "sbest-gcm",
+      "jira": "sbest@gcmlp.com"
+    },
+    {
+      "github": "sbhavsar-gcmlp",
+      "jira": "sbhavsar@gcmlp.com"
+    },
+    {
+      "github": "schwimer",
+      "jira": "jschwimer@gcmlp.com"
+    },
+    {
+      "github": "sjensen-gcm",
+      "jira": "sjensen@gcmlp.com"
+    },
+    {
+      "github": "slav-bukhal-gcm",
+      "jira": "sbukhal@gcmlp.com"
+    },
+    {
+      "github": "snarasipura",
+      "jira": "snarasipura@gcmlp.com"
+    },
+    {
+      "github": "swettstein",
+      "jira": "swettstein@gcmlp.com"
+    },
+    {
+      "github": "vdias-gcm",
+      "jira": "vdias@gcmlp.com"
+    },
+    {
+      "github": "vdimov-gcmlp",
+      "jira": "vdimov@gcmlp.com"
+    },
+    {
+      "github": "ywen-gcm",
+      "jira": "ywen@gcmlp.com"
+    }
+  ]
+}

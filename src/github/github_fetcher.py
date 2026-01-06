@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CONFIG_PATH = Path("config/users.json")
+CONFIG_PATH = Path("config.json")
 ORG_CACHE_DIR = Path("data/cache/_orgs")
 COMMITS_SINCE = datetime(2023, 1, 1)  # Only fetch commits since this date
 GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"

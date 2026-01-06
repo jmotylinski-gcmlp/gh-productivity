@@ -81,7 +81,7 @@ async function loadAllUsersData() {
         });
 
         if (missingUsers.length > 0) {
-            container.innerHTML = `<div class="error-message">User(s) not found in cache: ${missingUsers.join(', ')}<br><br>Make sure the users are configured in config/users.json.</div>`;
+            container.innerHTML = `<div class="error-message">User(s) not found in cache: ${missingUsers.join(', ')}<br><br>Make sure the users are configured in config.json.</div>`;
             return;
         }
 

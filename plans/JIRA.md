@@ -11,7 +11,7 @@ Develop per user statistic on which calculates mean time a JIRA issue is move in
 
 ### 1. Configuration
 
-**Add JIRA settings to `config/users.json`**
+**Add JIRA settings to `config.json`**
 ```json
 {
   "users": ["user1", "user2"],
@@ -125,7 +125,7 @@ gh-productivity/
 
 ### 8. Implementation Order
 
-1. ~~Add JIRA configuration to `config/users.json` and `.env`~~ ✓
+1. ~~Add JIRA configuration to `config.json` and `.env`~~ ✓
 2. ~~Create `src/jira_fetcher.py` with JiraClient and JiraFetcher classes~~ ✓
 3. ~~Create `src/jira_processor.py` with transition extraction and mean time calculation~~ ✓
 4. ~~Create `src/jira_exporter.py` for flat file exports~~ (skipped)

@@ -16,6 +16,7 @@ from src.jira.jira_processor import load_cached_issues, extract_in_progress_cycl
 # Get absolute paths relative to this file's location
 BASE_DIR = Path(__file__).parent.parent
 DASHBOARD_DIR = BASE_DIR / "dashboard"
+CONFIG_PATH = BASE_DIR / "config.json"
 
 # Ensure data directories exist (required for Azure deployment)
 (BASE_DIR / "data" / "cache").mkdir(parents=True, exist_ok=True)
@@ -74,6 +75,19 @@ def get_users():
     """Get list of configured users"""
     users = load_users_config()
     return jsonify(users)
+
+
+@app.route("/api/user-mappings")
+def get_user_mappings():
+    """Get GitHub to JIRA user mappings"""
+    try:
+        if CONFIG_PATH.exists():
+            with open(CONFIG_PATH) as f:
+                config = json.load(f)
+            return jsonify(config.get("user_mappings", []))
+        return jsonify([])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/users/all/stats")

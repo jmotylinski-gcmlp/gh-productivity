@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CONFIG_PATH = Path("config/users.json")
+CONFIG_PATH = Path("config.json")
 JIRA_CACHE_DIR = Path("data/cache/jira")
 ISSUES_SINCE = datetime(2023, 1, 1)  # Only fetch issues updated since this date
 
@@ -301,7 +301,7 @@ def fetch_all_projects(use_cache: bool = True) -> dict:
     jira_config = load_jira_config()
 
     if not jira_config:
-        print("No JIRA configuration found in config/users.json")
+        print("No JIRA configuration found in config.json")
         return {}
 
     base_url = jira_config.get("base_url")
@@ -313,7 +313,7 @@ def fetch_all_projects(use_cache: bool = True) -> dict:
         raise ValueError("JIRA_EMAIL and JIRA_API_TOKEN environment variables must be set")
 
     if not base_url:
-        raise ValueError("JIRA base_url not configured in config/users.json")
+        raise ValueError("JIRA base_url not configured in config.json")
 
     client = JiraClient(base_url, email, api_token)
 
@@ -349,7 +349,7 @@ def main():
 
     base_url = jira_config.get("base_url")
     if not base_url:
-        raise ValueError("JIRA base_url not configured in config/users.json")
+        raise ValueError("JIRA base_url not configured in config.json")
 
     client = JiraClient(base_url, email, api_token)
 

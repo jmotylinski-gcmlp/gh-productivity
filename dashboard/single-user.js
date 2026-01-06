@@ -5,24 +5,46 @@
 let githubChart = null;
 let jiraChart = null;
 let allUsersData = {};
+let userMappings = [];
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Set default end date to current month
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     document.getElementById('endDate').value = currentMonth;
 
+    // Load user mappings
+    await loadUserMappings();
+
     setupEventListeners();
 });
+
+async function loadUserMappings() {
+    try {
+        const resp = await fetch('/api/user-mappings');
+        userMappings = await resp.json();
+        console.log(`Loaded ${userMappings.length} user mappings`);
+    } catch (error) {
+        console.error('Failed to load user mappings:', error);
+        userMappings = [];
+    }
+}
+
+function getJiraEmailForGithubUser(githubUsername) {
+    if (!githubUsername || !userMappings.length) return null;
+
+    const mapping = userMappings.find(m =>
+        m.github.toLowerCase() === githubUsername.toLowerCase()
+    );
+
+    return mapping ? mapping.jira : null;
+}
 
 function setupEventListeners() {
     document.getElementById('searchBtn').addEventListener('click', loadUserData);
 
     // Allow Enter key to trigger search
     document.getElementById('username').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') loadUserData();
-    });
-    document.getElementById('jiraEmail').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') loadUserData();
     });
 }
@@ -41,12 +63,14 @@ function getCurrentMonth() {
 async function loadUserData() {
     const container = document.getElementById('mainContent');
     const username = document.getElementById('username').value.trim();
-    const jiraEmail = document.getElementById('jiraEmail').value.trim();
 
-    if (!username && !jiraEmail) {
-        container.innerHTML = `<div class="error-message">Please enter a GitHub username or JIRA email.</div>`;
+    if (!username) {
+        container.innerHTML = `<div class="error-message">Please enter a GitHub username.</div>`;
         return;
     }
+
+    // Look up JIRA email from mapping
+    const jiraEmail = getJiraEmailForGithubUser(username);
 
     container.innerHTML = `
         <div class="loading">
@@ -58,18 +82,16 @@ async function loadUserData() {
     try {
         // Fetch GitHub and JIRA data in parallel
         const [githubResp, jiraResp] = await Promise.all([
-            username ? fetch('/api/users/all/stats') : Promise.resolve(null),
+            fetch('/api/users/all/stats'),
             jiraEmail ? fetch(`/api/jira/stats/monthly?email=${encodeURIComponent(jiraEmail)}`) : Promise.resolve(null)
         ]);
 
         let githubData = null;
         let jiraData = null;
 
-        if (githubResp) {
-            allUsersData = await githubResp.json();
-            if (!allUsersData.error) {
-                githubData = allUsersData[username];
-            }
+        allUsersData = await githubResp.json();
+        if (!allUsersData.error) {
+            githubData = allUsersData[username];
         }
 
         if (jiraResp) {
@@ -92,7 +114,74 @@ function renderDashboard(githubData, jiraData, username, jiraEmail) {
 
     let html = '';
 
-    // JIRA section (first)
+    // GitHub section (first)
+    if (username && githubData) {
+        const dailyStats = githubData.daily_stats || {};
+        const monthlyData = aggregateByMonth(dailyStats);
+        const months = Object.keys(monthlyData)
+            .filter(m => m >= startDate && m <= endDate)
+            .sort();
+
+        if (months.length > 0) {
+            const total = months.reduce((sum, month) => sum + monthlyData[month].absolute, 0);
+
+            html += `
+                <div class="chart-section" style="margin-bottom: 24px;">
+                    <h2 title="Trend line upward is good" style="cursor: help;">GitHub: Lines Changed by Month</h2>
+                    <div class="chart-container">
+                        <canvas id="githubChart"></canvas>
+                    </div>
+                </div>
+                <details class="collapsible-section" style="margin-bottom: 24px;">
+                    <summary class="section-header">
+                        <span>GitHub: Lines Changed by Month - Data Table</span>
+                        <span class="toggle-icon"></span>
+                    </summary>
+                    <div class="section-content">
+                        <p class="table-subtitle">Total lines touched (additions + deletions)</p>
+                        <div class="table-wrapper">
+                            <table class="comparison-table single-user-table">
+                                <thead>
+                                    <tr>
+                                        <th class="month-col">Month</th>
+                                        <th class="user-col">Lines Changed</th>
+                                        <th class="user-col">Additions</th>
+                                        <th class="user-col">Deletions</th>
+                                        <th class="user-col">Commits</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="totals-row">
+                                        <td><strong>TOTAL</strong></td>
+                                        <td><strong>${formatNumber(total)}</strong></td>
+                                        <td><strong>${formatNumber(months.reduce((sum, m) => sum + monthlyData[m].additions, 0))}</strong></td>
+                                        <td><strong>${formatNumber(months.reduce((sum, m) => sum + monthlyData[m].deletions, 0))}</strong></td>
+                                        <td><strong>${formatNumber(months.reduce((sum, m) => sum + monthlyData[m].commits, 0))}</strong></td>
+                                    </tr>
+                                    ${months.slice().reverse().map(month => {
+                                        const data = monthlyData[month];
+                                        return `
+                                            <tr>
+                                                <td class="month-cell">${formatMonth(month)}</td>
+                                                <td>${formatNumber(data.absolute)}</td>
+                                                <td class="positive">${formatNumber(data.additions)}</td>
+                                                <td class="negative">${formatNumber(data.deletions)}</td>
+                                                <td>${formatNumber(data.commits)}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </details>
+            `;
+        }
+    } else if (username) {
+        html += `<div class="error-message" style="margin-bottom: 24px;">GitHub user "${username}" not found in cache.</div>`;
+    }
+
+    // JIRA section (second)
     if (jiraEmail && jiraData && Object.keys(jiraData).length > 0) {
         const jiraMonths = Object.keys(jiraData)
             .filter(m => m >= startDate && m <= endDate)
@@ -105,7 +194,7 @@ function renderDashboard(githubData, jiraData, username, jiraEmail) {
 
             html += `
                 <div class="chart-section" style="margin-bottom: 24px;">
-                    <h2>JIRA: Cycle Time by Month</h2>
+                    <h2 title="Trend line downward is good" style="cursor: help;">JIRA: Cycle Time by Month</h2>
                     <div class="chart-container">
                         <canvas id="jiraChart"></canvas>
                     </div>
@@ -160,73 +249,8 @@ function renderDashboard(githubData, jiraData, username, jiraEmail) {
         }
     } else if (jiraEmail) {
         html += `<div class="error-message" style="margin-bottom: 24px;">No JIRA cycle data found for "${jiraEmail}".</div>`;
-    }
-
-    // GitHub section (second)
-    if (username && githubData) {
-        const dailyStats = githubData.daily_stats || {};
-        const monthlyData = aggregateByMonth(dailyStats);
-        const months = Object.keys(monthlyData)
-            .filter(m => m >= startDate && m <= endDate)
-            .sort();
-
-        if (months.length > 0) {
-            const total = months.reduce((sum, month) => sum + monthlyData[month].absolute, 0);
-
-            html += `
-                <div class="chart-section" style="margin-bottom: 24px;">
-                    <h2>GitHub: Lines Changed by Month</h2>
-                    <div class="chart-container">
-                        <canvas id="githubChart"></canvas>
-                    </div>
-                </div>
-                <details class="collapsible-section" style="margin-bottom: 24px;">
-                    <summary class="section-header">
-                        <span>GitHub: Lines Changed by Month - Data Table</span>
-                        <span class="toggle-icon"></span>
-                    </summary>
-                    <div class="section-content">
-                        <p class="table-subtitle">Total lines touched (additions + deletions)</p>
-                        <div class="table-wrapper">
-                            <table class="comparison-table single-user-table">
-                                <thead>
-                                    <tr>
-                                        <th class="month-col">Month</th>
-                                        <th class="user-col">Lines Changed</th>
-                                        <th class="user-col">Additions</th>
-                                        <th class="user-col">Deletions</th>
-                                        <th class="user-col">Commits</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr class="totals-row">
-                                        <td><strong>TOTAL</strong></td>
-                                        <td><strong>${formatNumber(total)}</strong></td>
-                                        <td><strong>${formatNumber(months.reduce((sum, m) => sum + monthlyData[m].additions, 0))}</strong></td>
-                                        <td><strong>${formatNumber(months.reduce((sum, m) => sum + monthlyData[m].deletions, 0))}</strong></td>
-                                        <td><strong>${formatNumber(months.reduce((sum, m) => sum + monthlyData[m].commits, 0))}</strong></td>
-                                    </tr>
-                                    ${months.slice().reverse().map(month => {
-                                        const data = monthlyData[month];
-                                        return `
-                                            <tr>
-                                                <td class="month-cell">${formatMonth(month)}</td>
-                                                <td>${formatNumber(data.absolute)}</td>
-                                                <td class="positive">${formatNumber(data.additions)}</td>
-                                                <td class="negative">${formatNumber(data.deletions)}</td>
-                                                <td>${formatNumber(data.commits)}</td>
-                                            </tr>
-                                        `;
-                                    }).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </details>
-            `;
-        }
     } else if (username) {
-        html += `<div class="error-message">GitHub user "${username}" not found in cache.</div>`;
+        html += `<div class="error-message" style="margin-bottom: 24px;">No JIRA mapping found for GitHub user "${username}".</div>`;
     }
 
     if (!html) {

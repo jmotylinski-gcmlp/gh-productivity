@@ -7,7 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 
 
-CONFIG_PATH = Path("config/users.json")
+CONFIG_PATH = Path("config.json")
 ORG_CACHE_DIR = Path("data/cache/_orgs")
 USER_COMMITS_PATH = Path("data/exports/github/user_commits.csv")
 
