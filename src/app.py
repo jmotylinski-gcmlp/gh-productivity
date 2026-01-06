@@ -16,6 +16,10 @@ from src.cache_builder import load_dashboard_cache, build_dashboard_cache
 BASE_DIR = Path(__file__).parent.parent
 DASHBOARD_DIR = BASE_DIR / "dashboard"
 
+# Ensure data directories exist (required for Azure deployment)
+(BASE_DIR / "data" / "cache").mkdir(parents=True, exist_ok=True)
+(BASE_DIR / "data" / "exports").mkdir(parents=True, exist_ok=True)
+
 app = Flask(__name__, static_folder=str(DASHBOARD_DIR), static_url_path="")
 
 # In-memory cache (loaded from pre-processed file)

@@ -5,21 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GitHub Productivity Tracker</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>GitHub Productivity Tracker</h1>
-            <p class="subtitle">Individual User Statistics</p>
+            <p class="subtitle">Monthly Net Lines Comparison</p>
         </header>
 
         <div class="controls">
             <div class="user-inputs">
                 <div class="input-group">
-                    <label for="username">Username:</label>
-                    <input type="text" id="username" value="jmotylinski-gcmlp" placeholder="GitHub username">
+                    <label for="user1">User 1:</label>
+                    <input type="text" id="user1" value="jmotylinski-gcmlp" placeholder="GitHub username">
+                </div>
+                <div class="input-group">
+                    <label for="user2">User 2:</label>
+                    <input type="text" id="user2" value="nbeharovic-gcmlp" placeholder="GitHub username">
                 </div>
             </div>
             <div class="date-range-inputs">
@@ -32,14 +34,14 @@
                     <input type="month" id="endDate">
                 </div>
             </div>
-            <button id="searchBtn" class="btn btn-primary">Search</button>
+            <button id="compareBtn" class="btn btn-primary">Compare</button>
         </div>
 
         <div id="mainContent">
-            <!-- Chart and table will be dynamically inserted here -->
+            <!-- Comparison table will be dynamically inserted here -->
         </div>
     </div>
 
-    <script src="single-user.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
