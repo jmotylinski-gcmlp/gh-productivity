@@ -1,5 +1,5 @@
 /**
- * GitHub Productivity Tracker Dashboard - Monthly Comparison
+ * Productivity Tracker Dashboard - Monthly Comparison
  */
 
 let allUsersData = {};

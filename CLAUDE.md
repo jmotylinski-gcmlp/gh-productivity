@@ -85,7 +85,9 @@ gh-productivity/
 ├── tests/                      # Unit tests
 ├── .env                        # Environment variables (not in git)
 ├── requirements.txt            # Python dependencies
-├── startup.sh                  # Production server startup (gunicorn)
+├── startup.sh                  # Local production server startup (gunicorn)
+├── create.sh                   # Azure infrastructure provisioning
+├── deploy.sh                   # Azure deployment script
 ├── README.md
 └── CLAUDE.md
 ```
@@ -148,6 +150,33 @@ python3 -m pytest tests/test_data_processor.py
 
 # Run with coverage
 python3 -m pytest --cov=src
+```
+
+### Azure Deployment
+
+```bash
+# First time: Create Azure infrastructure (resource group, app service plan, web app)
+./create.sh
+
+# Deploy the application to Azure
+./deploy.sh
+```
+
+**`create.sh`** - Infrastructure provisioning (run once)
+- Creates resource group `jmotylinski-sandbox` in `eastus`
+- Creates App Service plan with F1 (free) tier on Linux
+- Creates web app `gh-productivity` with Python 3.11 runtime
+
+**`deploy.sh`** - Application deployment
+- Configures gunicorn startup command for the web app
+- Sets app settings (`SCM_DO_BUILD_DURING_DEPLOYMENT`, `PYTHONPATH`)
+- Creates zip package excluding venv, cache, .env, and shell scripts
+- Deploys via `az webapp deployment source config-zip`
+- App URL: https://gh-productivity.azurewebsites.net
+
+**Note**: If you encounter SSL certificate errors behind a corporate proxy, set:
+```bash
+export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1
 ```
 
 ## Key Implementation Details

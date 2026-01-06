@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JIRA Cycle Time Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>JIRA Cycle Time Tracker</h1>
+            <p class="subtitle">Time from In Progress to Next State</p>
+            <a href="/" class="back-link">← Back to GitHub Stats</a>
+        </header>
+
+        <div id="summarySection" class="comparison-section" style="margin-bottom: 24px;">
+            <h2>Overall Statistics</h2>
+            <div id="summaryContent">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading statistics...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-section" style="margin-bottom: 24px;">
+            <h2>Mean Cycle Time by User</h2>
+            <div class="chart-container" style="height: 400px;">
+                <canvas id="cycleTimeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="comparison-section">
+            <h2>Cycle Time by User</h2>
+            <p class="table-subtitle">Average time issues spend in "In Progress" state (in hours)</p>
+            <div class="table-wrapper">
+                <table class="comparison-table" id="userTable">
+                    <thead>
+                        <tr>
+                            <th class="month-col">User</th>
+                            <th class="user-col">Cycles</th>
+                            <th class="user-col">Mean (hrs)</th>
+                            <th class="user-col">Median (hrs)</th>
+                            <th class="user-col">Min (hrs)</th>
+                            <th class="user-col">Max (hrs)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        <tr>
+                            <td colspan="6" class="loading">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="jira.js"></script>
+</body>
+</html>

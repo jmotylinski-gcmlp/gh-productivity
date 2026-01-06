@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Productivity Tracker</title>
+    <title>Productivity Tracker</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
@@ -11,15 +11,19 @@
 <body>
     <div class="container">
         <header>
-            <h1>GitHub Productivity Tracker</h1>
+            <h1>Productivity Tracker</h1>
             <p class="subtitle">Individual User Statistics</p>
         </header>
 
         <div class="controls">
             <div class="user-inputs">
                 <div class="input-group">
-                    <label for="username">Username:</label>
+                    <label for="username">GitHub Username:</label>
                     <input type="text" id="username" value="jmotylinski-gcmlp" placeholder="GitHub username">
+                </div>
+                <div class="input-group">
+                    <label for="jiraEmail">JIRA Email:</label>
+                    <input type="text" id="jiraEmail" value="jmotylinski@gcmlp.com" placeholder="JIRA email">
                 </div>
             </div>
             <div class="date-range-inputs">

@@ -367,7 +367,7 @@ def main():
         print(f"\nFetched {total} total commits across {len(all_commits)} users")
 
     # Rebuild dashboard cache after fetching
-    from src.cache_builder import build_dashboard_cache
+    from src.github.github_processor import build_dashboard_cache
     print("\nRebuilding dashboard cache...")
     build_dashboard_cache()
 

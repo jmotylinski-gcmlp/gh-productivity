@@ -1,16 +1,107 @@
-"""Build pre-processed dashboard cache from raw commit data"""
+"""Process and aggregate commit data into daily statistics"""
 
 import csv
 import json
-from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
+from pathlib import Path
 
-from src.data_processor import DataProcessor
 
 CONFIG_PATH = Path("config/users.json")
 ORG_CACHE_DIR = Path("data/cache/_orgs")
-DASHBOARD_CACHE_PATH = Path("data/cache/dashboard_cache.csv")
+USER_COMMITS_PATH = Path("data/exports/github/user_commits.csv")
+
+
+class DataProcessor:
+    """Aggregates commit data into daily statistics"""
+
+    def __init__(self):
+        self.cache_dir = Path("data/cache")
+
+    def process_commits(self, commits: list, username: str = None) -> dict:
+        """
+        Aggregate commits into daily statistics
+
+        Args:
+            commits: List of commit dictionaries from github_fetcher
+            username: Optional username to include in output
+
+        Returns:
+            Dictionary with daily statistics
+        """
+        daily_stats = defaultdict(lambda: {
+            "additions": 0,
+            "deletions": 0,
+            "net_lines": 0,
+            "commits": 0,
+            "repositories": set()
+        })
+
+        for commit in commits:
+            date_str = commit["date"].split("T")[0]  # Extract YYYY-MM-DD
+
+            daily_stats[date_str]["additions"] += commit["additions"]
+            daily_stats[date_str]["deletions"] += commit["deletions"]
+            daily_stats[date_str]["commits"] += 1
+            daily_stats[date_str]["repositories"].add(commit["repository"])
+
+        # Calculate net lines and convert sets to lists
+        for date_str in daily_stats:
+            daily_stats[date_str]["net_lines"] = (
+                daily_stats[date_str]["additions"] - daily_stats[date_str]["deletions"]
+            )
+            daily_stats[date_str]["repositories"] = list(daily_stats[date_str]["repositories"])
+            if username:
+                daily_stats[date_str]["username"] = username
+
+        return dict(sorted(daily_stats.items()))
+
+    def calculate_summary(self, daily_stats: dict, username: str = None) -> dict:
+        """Calculate summary statistics across all days"""
+        if not daily_stats:
+            return {"username": username} if username else {}
+
+        total_additions = sum(s["additions"] for s in daily_stats.values())
+        total_deletions = sum(s["deletions"] for s in daily_stats.values())
+        total_commits = sum(s["commits"] for s in daily_stats.values())
+        total_days = len(daily_stats)
+
+        result = {
+            "total_additions": total_additions,
+            "total_deletions": total_deletions,
+            "net_lines": total_additions - total_deletions,
+            "total_commits": total_commits,
+            "total_days": total_days,
+            "avg_daily_lines": (total_additions - total_deletions) / total_days if total_days > 0 else 0,
+            "avg_commits_per_day": total_commits / total_days if total_days > 0 else 0
+        }
+
+        if username:
+            result["username"] = username
+
+        return result
+
+    def process_all_users(self, all_commits: dict) -> dict:
+        """
+        Process commits for all users
+
+        Args:
+            all_commits: Dictionary mapping username to list of commits
+
+        Returns:
+            Dictionary mapping username to their processed stats
+        """
+        results = {}
+
+        for username, commits in all_commits.items():
+            daily_stats = self.process_commits(commits, username)
+            summary = self.calculate_summary(daily_stats, username)
+            results[username] = {
+                "daily_stats": daily_stats,
+                "summary": summary
+            }
+
+        return results
 
 
 def load_users_config() -> list:
@@ -136,14 +227,14 @@ def build_dashboard_cache() -> dict:
         print(f"    {len(user_commits)} commits, {len(daily_stats)} active days")
 
     # Write CSV file
-    DASHBOARD_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(DASHBOARD_CACHE_PATH, 'w', newline='') as f:
+    USER_COMMITS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(USER_COMMITS_PATH, 'w', newline='') as f:
         fieldnames = ["username", "date", "commits", "additions", "deletions", "net_lines", "repositories"]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(csv_rows)
 
-    print(f"Dashboard cache written to {DASHBOARD_CACHE_PATH} ({len(csv_rows)} rows)")
+    print(f"User commits written to {USER_COMMITS_PATH} ({len(csv_rows)} rows)")
     return cache_data
 
 
@@ -154,13 +245,13 @@ def load_dashboard_cache() -> dict:
     Returns:
         Dictionary with all users' processed stats, or None if not found
     """
-    if not DASHBOARD_CACHE_PATH.exists():
+    if not USER_COMMITS_PATH.exists():
         return None
 
     # Read CSV and reconstruct the data structure
     users_data = defaultdict(lambda: {"daily_stats": {}, "commits": []})
 
-    with open(DASHBOARD_CACHE_PATH, 'r', newline='') as f:
+    with open(USER_COMMITS_PATH, 'r', newline='') as f:
         reader = csv.DictReader(f)
         for row in reader:
             username = row["username"]
@@ -177,7 +268,7 @@ def load_dashboard_cache() -> dict:
 
     # Calculate summaries from the daily stats
     result = {
-        "generated_at": datetime.fromtimestamp(DASHBOARD_CACHE_PATH.stat().st_mtime).isoformat(),
+        "generated_at": datetime.fromtimestamp(USER_COMMITS_PATH.stat().st_mtime).isoformat(),
         "users": {}
     }
 

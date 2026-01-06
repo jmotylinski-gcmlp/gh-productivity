@@ -5,5 +5,11 @@
   ],
   "organizations": [
     "GCMGrosvenor"
-  ]
+  ],
+  "jira": {
+    "base_url": "https://gcmlp1.atlassian.net/",
+    "user_mappings": {
+      "github-username": "jira-account-id"
+    }
+  }
 }

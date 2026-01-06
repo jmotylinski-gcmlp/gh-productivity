@@ -385,3 +385,65 @@ header h1 {
         font-size: 0.85em;
     }
 }
+
+/* Collapsible sections */
+.collapsible-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.collapsible-section > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    user-select: none;
+}
+
+.collapsible-section > summary::-webkit-details-marker {
+    display: none;
+}
+
+.collapsible-section > summary span:first-child {
+    font-weight: 600;
+    font-size: 1em;
+    color: #333;
+}
+
+.collapsible-section > summary .toggle-icon::after {
+    content: '▶';
+    font-size: 0.8em;
+    color: #666;
+    transition: transform 0.2s ease;
+    display: inline-block;
+}
+
+.collapsible-section[open] > summary .toggle-icon::after {
+    transform: rotate(90deg);
+}
+
+.collapsible-section > summary:hover {
+    background: #f0f0f0;
+}
+
+.collapsible-section .section-content {
+    padding: 24px;
+}
+
+.collapsible-section .chart-section {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+.collapsible-section .comparison-section {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}

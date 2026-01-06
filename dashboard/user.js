@@ -1,5 +1,5 @@
 /**
- * GitHub Productivity Tracker - Individual User Stats
+ * Productivity Tracker - Individual User Stats
  */
 
 let chart = null;
