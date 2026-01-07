@@ -1,7 +1,7 @@
 """Tests for data processor"""
 
 import unittest
-from src.github.github_processor import DataProcessor
+from src.github.commit_processor import DataProcessor
 
 
 class TestDataProcessor(unittest.TestCase):

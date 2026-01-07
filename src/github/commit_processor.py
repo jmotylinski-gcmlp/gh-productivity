@@ -4,19 +4,16 @@ import csv
 import json
 from datetime import datetime
 from collections import defaultdict
-from pathlib import Path
 
-
-CONFIG_PATH = Path("config.json")
-ORG_CACHE_DIR = Path("data/cache/_orgs")
-USER_COMMITS_PATH = Path("data/exports/github/user_commits.csv")
+from src.config import (
+    GITHUB_ORGANIZATIONS,
+    GITHUB_COMMITS_RAW_DIR,
+    GITHUB_USER_COMMITS_CSV,
+)
 
 
 class DataProcessor:
     """Aggregates commit data into daily statistics"""
-
-    def __init__(self):
-        self.cache_dir = Path("data/cache")
 
     def process_commits(self, commits: list, username: str = None) -> dict:
         """
@@ -104,24 +101,6 @@ class DataProcessor:
         return results
 
 
-def load_users_config() -> list:
-    """Load list of users from config file"""
-    if not CONFIG_PATH.exists():
-        return []
-    with open(CONFIG_PATH) as f:
-        config = json.load(f)
-    return config.get("users", [])
-
-
-def load_organizations_config() -> list:
-    """Load list of organizations from config file"""
-    if not CONFIG_PATH.exists():
-        return []
-    with open(CONFIG_PATH) as f:
-        config = json.load(f)
-    return config.get("organizations", [])
-
-
 def load_all_org_commits() -> dict:
     """
     Load all commits from org cache files.
@@ -130,10 +109,9 @@ def load_all_org_commits() -> dict:
         Dictionary mapping org_name -> repo_name -> list of commits
     """
     all_commits = {}
-    organizations = load_organizations_config()
 
-    for org_name in organizations:
-        org_dir = ORG_CACHE_DIR / org_name
+    for org_name in GITHUB_ORGANIZATIONS:
+        org_dir = GITHUB_COMMITS_RAW_DIR / org_name
         if not org_dir.exists():
             continue
 
@@ -227,14 +205,14 @@ def build_dashboard_cache() -> dict:
         print(f"    {len(user_commits)} commits, {len(daily_stats)} active days")
 
     # Write CSV file
-    USER_COMMITS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(USER_COMMITS_PATH, 'w', newline='') as f:
+    GITHUB_USER_COMMITS_CSV.parent.mkdir(parents=True, exist_ok=True)
+    with open(GITHUB_USER_COMMITS_CSV, 'w', newline='') as f:
         fieldnames = ["username", "date", "commits", "additions", "deletions", "net_lines", "repositories"]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(csv_rows)
 
-    print(f"User commits written to {USER_COMMITS_PATH} ({len(csv_rows)} rows)")
+    print(f"User commits written to {GITHUB_USER_COMMITS_CSV} ({len(csv_rows)} rows)")
     return cache_data
 
 
@@ -245,13 +223,13 @@ def load_dashboard_cache() -> dict:
     Returns:
         Dictionary with all users' processed stats, or None if not found
     """
-    if not USER_COMMITS_PATH.exists():
+    if not GITHUB_USER_COMMITS_CSV.exists():
         return None
 
     # Read CSV and reconstruct the data structure
     users_data = defaultdict(lambda: {"daily_stats": {}, "commits": []})
 
-    with open(USER_COMMITS_PATH, 'r', newline='') as f:
+    with open(GITHUB_USER_COMMITS_CSV, 'r', newline='') as f:
         reader = csv.DictReader(f)
         for row in reader:
             username = row["username"]
@@ -268,7 +246,7 @@ def load_dashboard_cache() -> dict:
 
     # Calculate summaries from the daily stats
     result = {
-        "generated_at": datetime.fromtimestamp(USER_COMMITS_PATH.stat().st_mtime).isoformat(),
+        "generated_at": datetime.fromtimestamp(GITHUB_USER_COMMITS_CSV.stat().st_mtime).isoformat(),
         "users": {}
     }
 

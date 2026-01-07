@@ -29,7 +29,7 @@ zip -r deploy.zip . \
   -x "__pycache__/*" \
   -x "*/__pycache__/*" \
   -x "*.pyc" \
-  -x "data/cache/*" \
+  -x "data/raw/*" \
   -x ".env" \
   -x "deploy.zip" \
   -x "*.sh"

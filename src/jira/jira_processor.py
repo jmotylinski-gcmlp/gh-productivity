@@ -1,13 +1,11 @@
 """Process JIRA issue data to extract In Progress cycle times"""
 
 import csv
-from datetime import datetime
-from pathlib import Path
 import json
 import argparse
+from pathlib import Path
 
-
-OUTPUT_DIR = Path("data/exports/jira")
+from src.config import JIRA_RAW_DIR, JIRA_EXPORTS_DIR, JIRA_USER_ISSUES_CSV
 
 
 def extract_in_progress_cycles(issue: dict) -> list:
@@ -64,8 +62,8 @@ def process_issues_to_csv(all_issues: dict, output_file: Path = None) -> Path:
         Path to the output CSV file
     """
     if output_file is None:
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-        output_file = OUTPUT_DIR / "user_issues.csv"
+        JIRA_EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
+        output_file = JIRA_USER_ISSUES_CSV
 
     all_cycles = []
 
@@ -91,13 +89,12 @@ def load_cached_issues() -> dict:
     Returns:
         Dictionary mapping project_key to list of issues
     """
-    cache_dir = Path("data/cache/jira")
     all_issues = {}
 
-    if not cache_dir.exists():
+    if not JIRA_RAW_DIR.exists():
         return all_issues
 
-    for project_dir in cache_dir.iterdir():
+    for project_dir in JIRA_RAW_DIR.iterdir():
         if project_dir.is_dir():
             issues_file = project_dir / "issues.json"
             if issues_file.exists():

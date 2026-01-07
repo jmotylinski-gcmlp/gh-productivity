@@ -31,7 +31,7 @@ wheels/
 
 # Data
 data/exports/
-data/cache/
+data/raw/
 
 # Dashboard
 dashboard/node_modules/

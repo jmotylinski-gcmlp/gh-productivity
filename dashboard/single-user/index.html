@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productivity Tracker</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Productivity Tracker</h1>
+            <p class="subtitle">Individual User Statistics</p>
+            <nav class="nav-links">
+                <a href="../prs/" class="back-link">PR Metrics</a>
+                <a href="../jira/" class="back-link">JIRA Stats</a>
+            </nav>
+        </header>
+
+        <div class="controls">
+            <div class="user-inputs">
+                <div class="input-group">
+                    <label for="username">GitHub Username:</label>
+                    <input type="text" id="username" value="jmotylinski-gcmlp" placeholder="GitHub username">
+                </div>
+            </div>
+            <div class="date-range-inputs">
+                <div class="input-group">
+                    <label for="startDate">From:</label>
+                    <input type="month" id="startDate" value="2023-01">
+                </div>
+                <div class="input-group">
+                    <label for="endDate">To:</label>
+                    <input type="month" id="endDate">
+                </div>
+            </div>
+            <button id="searchBtn" class="btn btn-primary">Search</button>
+        </div>
+
+        <div id="mainContent">
+            <!-- Chart and table will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <script src="single-user.js"></script>
+</body>
+</html>

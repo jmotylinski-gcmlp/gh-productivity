@@ -1,19 +1,21 @@
 """Fetch commit data from GitHub GraphQL API"""
 
 import os
-from pathlib import Path
-from datetime import datetime
 import json
-import requests
 import argparse
+import requests
 from dotenv import load_dotenv
+
+from src.config import (
+    GITHUB_ORGANIZATIONS,
+    GITHUB_GRAPHQL_URL,
+    GITHUB_DATA_SINCE,
+    GITHUB_COMMITS_RAW_DIR,
+    RAW_DIR,
+)
 
 load_dotenv()
 
-CONFIG_PATH = Path("config.json")
-ORG_CACHE_DIR = Path("data/cache/_orgs")
-COMMITS_SINCE = datetime(2023, 1, 1)  # Only fetch commits since this date
-GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
 
 # GraphQL query to fetch commits with stats in one request
 COMMITS_QUERY = """
@@ -70,24 +72,6 @@ query($org: String!, $cursor: String) {
 """
 
 
-def load_users_config() -> list:
-    """Load list of users from config file"""
-    if not CONFIG_PATH.exists():
-        return []
-    with open(CONFIG_PATH) as f:
-        config = json.load(f)
-    return config.get("users", [])
-
-
-def load_organizations_config() -> list:
-    """Load list of organizations from config file"""
-    if not CONFIG_PATH.exists():
-        return []
-    with open(CONFIG_PATH) as f:
-        config = json.load(f)
-    return config.get("organizations", [])
-
-
 class GraphQLClient:
     """Simple GitHub GraphQL client"""
 
@@ -119,7 +103,7 @@ class OrgCommitCache:
 
     def __init__(self, client: GraphQLClient):
         self.client = client
-        self.cache_dir = ORG_CACHE_DIR
+        self.cache_dir = GITHUB_COMMITS_RAW_DIR
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self._org_commits = {}  # In-memory cache: {org_name: {repo_name: [commits]}}
 
@@ -197,7 +181,7 @@ class OrgCommitCache:
         """Fetch commits from a repository using GraphQL (with stats in same query)"""
         commits = []
         cursor = None
-        since_iso = COMMITS_SINCE.isoformat()
+        since_iso = GITHUB_DATA_SINCE.isoformat()
 
         while True:
             variables = {
@@ -286,7 +270,7 @@ class GitHubFetcher:
         self.client = GraphQLClient(token)
         self.token = token
         self.username = username
-        self.cache_dir = Path("data/cache") / username
+        self.cache_dir = RAW_DIR / username
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         # Initialize shared org cache
@@ -307,8 +291,7 @@ class GitHubFetcher:
         seen_shas = set()
 
         # Fetch from organization repositories (shared cache, filtered by user)
-        organizations = load_organizations_config()
-        for org_name in organizations:
+        for org_name in GITHUB_ORGANIZATIONS:
             user_commits = GitHubFetcher._org_cache.get_user_commits(
                 org_name, self.username, use_cache
             )
@@ -320,34 +303,11 @@ class GitHubFetcher:
         return commits
 
 
-def fetch_all_users(token: str, use_cache: bool = True) -> dict:
-    """
-    Fetch commits for all configured users
-
-    Args:
-        token: GitHub personal access token
-        use_cache: Whether to use cached data
-
-    Returns:
-        Dictionary mapping username to list of commits
-    """
-    users = load_users_config()
-    all_commits = {}
-
-    for username in users:
-        print(f"Fetching commits for {username}...")
-        fetcher = GitHubFetcher(token, username)
-        all_commits[username] = fetcher.fetch_all_commits(use_cache=use_cache)
-        print(f"  Found {len(all_commits[username])} commits for {username}")
-
-    return all_commits
-
-
 def main():
     parser = argparse.ArgumentParser(description="Fetch GitHub commits")
     parser.add_argument("--repo", help="Specific repository to fetch (optional)")
     parser.add_argument("--no-cache", action="store_true", help="Don't use cached data")
-    parser.add_argument("--user", help="Specific user to fetch (optional, defaults to all users in config)")
+    parser.add_argument("--user", help="Specific user to fetch (optional)")
     args = parser.parse_args()
 
     token = os.getenv("GITHUB_TOKEN")
@@ -361,13 +321,14 @@ def main():
         commits = fetcher.fetch_all_commits(use_cache=not args.no_cache)
         print(f"Fetched {len(commits)} commits for {args.user}")
     else:
-        # Fetch for all configured users
-        all_commits = fetch_all_users(token, use_cache=not args.no_cache)
-        total = sum(len(c) for c in all_commits.values())
-        print(f"\nFetched {total} total commits across {len(all_commits)} users")
+        # Fetch all org commits (no user filter)
+        client = GraphQLClient(token)
+        org_cache = OrgCommitCache(client)
+        for org_name in GITHUB_ORGANIZATIONS:
+            org_cache.fetch_org_commits(org_name, use_cache=not args.no_cache)
 
     # Rebuild dashboard cache after fetching
-    from src.github.github_processor import build_dashboard_cache
+    from src.github.commit_processor import build_dashboard_cache
     print("\nRebuilding dashboard cache...")
     build_dashboard_cache()
 

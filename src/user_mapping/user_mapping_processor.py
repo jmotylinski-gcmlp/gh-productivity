@@ -1,15 +1,14 @@
-"""Map GitHub usernames to JIRA email addresses using fuzzy matching"""
+"""Process and build GitHub to JIRA user mappings using fuzzy matching"""
 
 import csv
-import json
-import re
-from pathlib import Path
 from difflib import SequenceMatcher
 
-
-GITHUB_CSV = Path("data/exports/github/user_commits.csv")
-JIRA_CSV = Path("data/exports/jira/user_issues.csv")
-CONFIG_PATH = Path("config.json")
+from src.config import (
+    GITHUB_USER_COMMITS_CSV,
+    JIRA_USER_ISSUES_CSV,
+    USER_MAPPING_EXPORTS_DIR,
+    USER_MAPPING_CSV,
+)
 
 
 def normalize_github_username(username: str) -> str:
@@ -61,11 +60,11 @@ def get_unique_github_usernames() -> set:
     """Read unique GitHub usernames from CSV."""
     usernames = set()
 
-    if not GITHUB_CSV.exists():
-        print(f"Warning: {GITHUB_CSV} not found")
+    if not GITHUB_USER_COMMITS_CSV.exists():
+        print(f"Warning: {GITHUB_USER_COMMITS_CSV} not found")
         return usernames
 
-    with open(GITHUB_CSV, 'r', newline='') as f:
+    with open(GITHUB_USER_COMMITS_CSV, 'r', newline='') as f:
         reader = csv.DictReader(f)
         for row in reader:
             username = row.get('username', '').strip()
@@ -79,11 +78,11 @@ def get_unique_jira_emails() -> set:
     """Read unique JIRA emails from CSV."""
     emails = set()
 
-    if not JIRA_CSV.exists():
-        print(f"Warning: {JIRA_CSV} not found")
+    if not JIRA_USER_ISSUES_CSV.exists():
+        print(f"Warning: {JIRA_USER_ISSUES_CSV} not found")
         return emails
 
-    with open(JIRA_CSV, 'r', newline='') as f:
+    with open(JIRA_USER_ISSUES_CSV, 'r', newline='') as f:
         reader = csv.DictReader(f)
         for row in reader:
             email = row.get('assignee_email', '').strip()
@@ -182,30 +181,32 @@ def build_user_mappings(threshold: float = 0.7) -> list:
     return mappings
 
 
-def save_mappings_to_config(mappings: list):
-    """Save user mappings to config.json."""
-    # Load existing config
-    config = {}
-    if CONFIG_PATH.exists():
-        with open(CONFIG_PATH, 'r') as f:
-            config = json.load(f)
+def process_mappings_to_csv(mappings: list = None) -> None:
+    """
+    Process user mappings and write to CSV file.
 
-    # Update with user_mappings at root level
-    config['user_mappings'] = mappings
+    Args:
+        mappings: Optional pre-built mappings. If None, will build them.
+    """
+    if mappings is None:
+        mappings = build_user_mappings()
 
-    # Write back
-    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(CONFIG_PATH, 'w') as f:
-        json.dump(config, f, indent=2)
+    # Ensure directory exists
+    USER_MAPPING_EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    print(f"\nSaved {len(mappings)} mappings to {CONFIG_PATH}")
+    # Write CSV file
+    with open(USER_MAPPING_CSV, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=['github', 'jira'])
+        writer.writeheader()
+        writer.writerows(mappings)
+
+    print(f"\nWrote {len(mappings)} mappings to {USER_MAPPING_CSV}")
 
 
 def main():
     print("Building GitHub to JIRA user mappings...\n")
-
     mappings = build_user_mappings(threshold=0.7)
-    save_mappings_to_config(mappings)
+    process_mappings_to_csv(mappings)
 
 
 if __name__ == "__main__":

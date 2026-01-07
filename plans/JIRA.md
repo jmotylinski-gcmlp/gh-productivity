@@ -34,7 +34,7 @@ JIRA_API_TOKEN=your-api-token
 
 ### 2. JIRA Data Fetcher (`src/jira_fetcher.py`)
 
-Create a new module following the `github_fetcher.py` pattern:
+Create a new module following the `commit_fetcher.py` pattern:
 
 - **JiraClient class**: Handles authentication and API requests to JIRA REST API
 - **JiraFetcher class**: Fetches issue data with changelog (status transitions)

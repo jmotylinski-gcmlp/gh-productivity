@@ -1,36 +1,18 @@
 """Fetch issue data with changelog from JIRA REST API"""
 
 import os
-from pathlib import Path
-from datetime import datetime
 import json
-import requests
 import argparse
+import requests
 from dotenv import load_dotenv
 
+from src.config import (
+    JIRA_BASE_URL,
+    JIRA_DATA_SINCE,
+    JIRA_RAW_DIR,
+)
+
 load_dotenv()
-
-CONFIG_PATH = Path("config.json")
-JIRA_CACHE_DIR = Path("data/cache/jira")
-ISSUES_SINCE = datetime(2023, 1, 1)  # Only fetch issues updated since this date
-
-
-def load_jira_config() -> dict:
-    """Load JIRA configuration from config file"""
-    if not CONFIG_PATH.exists():
-        return {}
-    with open(CONFIG_PATH) as f:
-        config = json.load(f)
-    return config.get("jira", {})
-
-
-def load_users_config() -> list:
-    """Load list of users from config file"""
-    if not CONFIG_PATH.exists():
-        return []
-    with open(CONFIG_PATH) as f:
-        config = json.load(f)
-    return config.get("users", [])
 
 
 class JiraClient:
@@ -162,7 +144,7 @@ class JiraFetcher:
         """
         self.client = client
         self.project_key = project_key
-        self.cache_dir = JIRA_CACHE_DIR / project_key
+        self.cache_dir = JIRA_RAW_DIR / project_key
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
     def fetch_all_issues(self, use_cache: bool = True) -> list:
@@ -200,7 +182,7 @@ class JiraFetcher:
         page_num = 1
 
         # Build JQL query for issues updated since cutoff date
-        since_str = ISSUES_SINCE.strftime("%Y-%m-%d")
+        since_str = JIRA_DATA_SINCE.strftime("%Y-%m-%d")
         jql = f'project = "{self.project_key}" AND updated >= "{since_str}" ORDER BY updated DESC'
 
         while True:
@@ -298,24 +280,16 @@ def fetch_all_projects(use_cache: bool = True) -> dict:
     Returns:
         Dictionary mapping project_key to list of issues
     """
-    jira_config = load_jira_config()
-
-    if not jira_config:
-        print("No JIRA configuration found in config.json")
-        return {}
-
-    base_url = jira_config.get("base_url")
-
     email = os.getenv("JIRA_EMAIL")
     api_token = os.getenv("JIRA_API_TOKEN")
 
     if not email or not api_token:
         raise ValueError("JIRA_EMAIL and JIRA_API_TOKEN environment variables must be set")
 
-    if not base_url:
-        raise ValueError("JIRA base_url not configured in config.json")
+    if not JIRA_BASE_URL:
+        raise ValueError("JIRA_BASE_URL not configured")
 
-    client = JiraClient(base_url, email, api_token)
+    client = JiraClient(JIRA_BASE_URL, email, api_token)
 
     # Fetch all projects from JIRA API
     print("Discovering projects from JIRA API...")
@@ -340,18 +314,16 @@ def main():
     parser.add_argument("--no-cache", action="store_true", help="Don't use cached data")
     args = parser.parse_args()
 
-    jira_config = load_jira_config()
     email = os.getenv("JIRA_EMAIL")
     api_token = os.getenv("JIRA_API_TOKEN")
 
     if not email or not api_token:
         raise ValueError("JIRA_EMAIL and JIRA_API_TOKEN environment variables must be set")
 
-    base_url = jira_config.get("base_url")
-    if not base_url:
-        raise ValueError("JIRA base_url not configured in config.json")
+    if not JIRA_BASE_URL:
+        raise ValueError("JIRA_BASE_URL not configured")
 
-    client = JiraClient(base_url, email, api_token)
+    client = JiraClient(JIRA_BASE_URL, email, api_token)
 
     if args.project:
         # Fetch for specific project
