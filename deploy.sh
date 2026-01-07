@@ -44,5 +44,14 @@ az webapp deployment source config-zip \
 # Clean up
 rm deploy.zip
 
+echo ""
 echo "Deployment complete!"
 echo "App URL: https://${APP_NAME}.azurewebsites.net"
+echo ""
+echo "To enable scheduled data fetching, configure these App Settings:"
+echo "  az webapp config appsettings set --resource-group $RESOURCE_GROUP --name $APP_NAME \\"
+echo "    --settings GITHUB_TOKEN=<token> JIRA_EMAIL=<email> JIRA_API_TOKEN=<token> ADMIN_API_KEY=<secret>"
+echo ""
+echo "Then set up a scheduler (Azure Logic Apps, GitHub Actions, etc.) to call:"
+echo "  POST https://${APP_NAME}.azurewebsites.net/api/admin/fetch"
+echo "  Header: X-API-Key: <your ADMIN_API_KEY>"

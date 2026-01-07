@@ -6,11 +6,11 @@
   # Create resource group
   az group create --name $RESOURCE_GROUP --location $LOCATION
 
-  # Create App Service plan (B1 is basic paid tier, F1 is free)
+  # Create App Service plan (F1 is free tier, B1 is basic paid tier)
   az appservice plan create \
     --name "${APP_NAME}-plan" \
     --resource-group $RESOURCE_GROUP \
-    --sku F1 \
+    --sku B1 \
     --is-linux
 
   # Create the web app

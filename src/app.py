@@ -23,11 +23,13 @@ def create_app():
     from src.api.github import github_bp
     from src.api.jira import jira_bp
     from src.api.pr import pr_bp
+    from src.api.admin import admin_bp
     from src.routes import website_bp
 
     app.register_blueprint(github_bp)
     app.register_blueprint(jira_bp)
     app.register_blueprint(pr_bp)
+    app.register_blueprint(admin_bp)
     app.register_blueprint(website_bp)
 
     return app
