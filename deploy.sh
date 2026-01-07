@@ -6,12 +6,13 @@ export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1
 RESOURCE_GROUP="jmotylinski-sandbox"
 APP_NAME="gh-productivity"
 
-# Configure startup command for gunicorn
-echo "Configuring startup command..."
+# Configure startup command and health check
+echo "Configuring startup command and health check..."
 az webapp config set \
   --resource-group $RESOURCE_GROUP \
   --name $APP_NAME \
-  --startup-file "gunicorn --bind=0.0.0.0:8000 --timeout 600 src.app:app"
+  --startup-file "gunicorn --bind=0.0.0.0:8000 --timeout 600 src.app:app" \
+  --generic-configurations '{"healthCheckPath": "/api/admin/health"}'
 
 # Set environment variables
 echo "Setting app configuration..."
