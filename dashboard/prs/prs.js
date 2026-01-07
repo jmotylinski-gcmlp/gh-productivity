@@ -12,8 +12,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     document.getElementById('endDate').value = currentMonth;
 
+    // Read URL parameters for date range
+    const urlParams = new URLSearchParams(window.location.search);
+    const startParam = urlParams.get('start');
+    const endParam = urlParams.get('end');
+    if (startParam) {
+        document.getElementById('startDate').value = startParam;
+    }
+    if (endParam) {
+        document.getElementById('endDate').value = endParam;
+    }
+
     // Load repositories
     await loadRepositories();
+
+    // Check URL for pre-selected repository
+    const repoParam = urlParams.get('repo');
+    if (repoParam && repositories.includes(repoParam)) {
+        document.getElementById('repository').value = repoParam;
+        loadPRData();
+    }
 
     setupEventListeners();
 });
@@ -73,6 +91,20 @@ function getCurrentMonth() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function updateURL() {
+    const repository = document.getElementById('repository').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+
+    const params = new URLSearchParams();
+    if (repository) params.set('repo', repository);
+    if (startDate) params.set('start', startDate);
+    if (endDate) params.set('end', endDate);
+
+    const newURL = `${window.location.pathname}?${params.toString()}`;
+    history.pushState({}, '', newURL);
+}
+
 async function loadPRData() {
     const container = document.getElementById('mainContent');
     const repository = document.getElementById('repository').value;
@@ -81,6 +113,9 @@ async function loadPRData() {
         container.innerHTML = `<div class="error-message">Please select a repository.</div>`;
         return;
     }
+
+    // Update URL for bookmarking
+    updateURL();
 
     container.innerHTML = `
         <div class="loading">
@@ -206,8 +241,11 @@ function renderDashboard(stats, monthlyData, repository) {
                                 <td><strong>${formatNumber(Math.round(months.reduce((sum, m) => sum + m.avg_deletions, 0) / months.length))}</strong></td>
                             </tr>
                             ${months.slice().reverse().map(data => `
-                                <tr>
-                                    <td class="month-cell">${formatMonth(data.month)}</td>
+                                <tr class="month-row" data-month="${data.month}" style="cursor: pointer;">
+                                    <td class="month-cell">
+                                        <span class="expand-icon">▶</span>
+                                        ${formatMonth(data.month)}
+                                    </td>
                                     <td>${formatNumber(data.pr_count)}</td>
                                     <td>${formatHours(data.avg_time_open_hours)}</td>
                                     <td>${formatHours(data.median_time_open_hours)}</td>
@@ -215,6 +253,44 @@ function renderDashboard(stats, monthlyData, repository) {
                                     <td>${data.avg_reviewer_count.toFixed(1)}</td>
                                     <td class="positive">${formatNumber(Math.round(data.avg_additions))}</td>
                                     <td class="negative">${formatNumber(Math.round(data.avg_deletions))}</td>
+                                </tr>
+                                <tr class="pr-details-row" data-month="${data.month}" style="display: none;">
+                                    <td colspan="8" style="padding: 0; background: #f8f9fa;">
+                                        <div class="pr-details-container" style="padding: 12px 20px;">
+                                            <table class="pr-details-table" style="width: 100%; font-size: 0.9em; border-collapse: collapse;">
+                                                <thead>
+                                                    <tr style="background: #e9ecef;">
+                                                        <th style="text-align: left; padding: 8px;">PR</th>
+                                                        <th style="text-align: left; padding: 8px;">Author</th>
+                                                        <th style="text-align: right; padding: 8px;">Time Open</th>
+                                                        <th style="text-align: right; padding: 8px;">Time to Review</th>
+                                                        <th style="text-align: right; padding: 8px;">Reviewers</th>
+                                                        <th style="text-align: right; padding: 8px;">+/-</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${(data.prs || []).map(pr => `
+                                                        <tr style="border-bottom: 1px solid #dee2e6;">
+                                                            <td style="padding: 8px;">
+                                                                <a href="https://github.com/${repository}/pull/${pr.pr_number}" target="_blank" style="color: #1f6feb; text-decoration: none;" title="${escapeHtml(pr.title)}">
+                                                                    #${pr.pr_number}
+                                                                </a>
+                                                                <span style="color: #666; margin-left: 8px;">${truncateTitle(pr.title, 50)}</span>
+                                                            </td>
+                                                            <td style="padding: 8px; color: #666;">${pr.author || '-'}</td>
+                                                            <td style="padding: 8px; text-align: right;">${formatHours(pr.time_open_hours)}</td>
+                                                            <td style="padding: 8px; text-align: right;">${formatHours(pr.time_to_first_review_hours)}</td>
+                                                            <td style="padding: 8px; text-align: right;">${pr.reviewer_count}</td>
+                                                            <td style="padding: 8px; text-align: right;">
+                                                                <span style="color: #28a745;">+${formatNumber(pr.additions)}</span>
+                                                                <span style="color: #dc3545;">-${formatNumber(pr.deletions)}</span>
+                                                            </td>
+                                                        </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -230,6 +306,29 @@ function renderDashboard(stats, monthlyData, repository) {
     const monthLabels = months.map(m => m.month);
     renderTimeOpenChart(monthLabels, months);
     renderTimeToReviewChart(monthLabels, months);
+
+    // Setup expand/collapse for month rows
+    setupMonthRowToggle();
+}
+
+function setupMonthRowToggle() {
+    document.querySelectorAll('.month-row').forEach(row => {
+        row.addEventListener('click', () => {
+            const month = row.dataset.month;
+            const detailsRow = document.querySelector(`.pr-details-row[data-month="${month}"]`);
+            const expandIcon = row.querySelector('.expand-icon');
+
+            if (detailsRow.style.display === 'none') {
+                detailsRow.style.display = 'table-row';
+                expandIcon.textContent = '▼';
+                row.style.background = '#f0f0f0';
+            } else {
+                detailsRow.style.display = 'none';
+                expandIcon.textContent = '▶';
+                row.style.background = '';
+            }
+        });
+    });
 }
 
 function renderTimeOpenChart(monthLabels, monthsData) {
@@ -476,4 +575,18 @@ function formatHours(hours) {
     const remainingHours = hours % 24;
     if (remainingHours < 1) return `${days}d`;
     return `${days}d ${remainingHours.toFixed(0)}h`;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function truncateTitle(title, maxLength) {
+    if (!title) return '';
+    const escaped = escapeHtml(title);
+    if (escaped.length <= maxLength) return escaped;
+    return escaped.substring(0, maxLength) + '...';
 }

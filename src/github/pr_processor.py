@@ -103,12 +103,13 @@ def calculate_pr_metrics(pr: dict) -> dict:
     return result
 
 
-def aggregate_prs_by_month(prs: list) -> dict:
+def aggregate_prs_by_month(prs: list, include_prs: bool = False) -> dict:
     """
     Aggregate PRs by month.
 
     Args:
         prs: List of PR dictionaries with calculated metrics
+        include_prs: If True, include individual PR details in each month
 
     Returns:
         Dictionary mapping month (YYYY-MM) to aggregated stats
@@ -133,7 +134,7 @@ def aggregate_prs_by_month(prs: list) -> dict:
         additions = [p.get("additions", 0) for p in month_prs]
         deletions = [p.get("deletions", 0) for p in month_prs]
 
-        result[month] = {
+        month_result = {
             "month": month,
             "pr_count": len(month_prs),
             "avg_time_open_hours": mean(time_open_values) if time_open_values else None,
@@ -143,6 +144,29 @@ def aggregate_prs_by_month(prs: list) -> dict:
             "avg_additions": mean(additions) if additions else 0,
             "avg_deletions": mean(deletions) if deletions else 0
         }
+
+        if include_prs:
+            # Include individual PR details sorted by time open (descending)
+            month_result["prs"] = sorted(
+                [
+                    {
+                        "pr_number": p.get("pr_number"),
+                        "title": p.get("title"),
+                        "author": p.get("author"),
+                        "state": p.get("state"),
+                        "time_open_hours": p.get("time_open_hours"),
+                        "time_to_first_review_hours": p.get("time_to_first_review_hours"),
+                        "reviewer_count": p.get("reviewer_count"),
+                        "additions": p.get("additions", 0),
+                        "deletions": p.get("deletions", 0),
+                    }
+                    for p in month_prs
+                ],
+                key=lambda x: x.get("time_open_hours") or 0,
+                reverse=True
+            )
+
+        result[month] = month_result
 
     return result
 
@@ -160,12 +184,12 @@ def get_repository_prs(repository: str) -> list:
     return [pr for pr in prs if pr["repository"] == repository]
 
 
-def get_repository_monthly_stats(repository: str) -> dict:
+def get_repository_monthly_stats(repository: str, include_prs: bool = True) -> dict:
     """Get monthly aggregated stats for a repository (from CSV export)"""
     prs = get_repository_prs(repository)
     return {
         "repository": repository,
-        "months": list(aggregate_prs_by_month(prs).values())
+        "months": list(aggregate_prs_by_month(prs, include_prs=include_prs).values())
     }
 
 
