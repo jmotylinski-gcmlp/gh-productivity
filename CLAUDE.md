@@ -69,25 +69,26 @@ Productivity Tracker is a tool that analyzes developer productivity metrics from
 
 **Web Dashboard (`dashboard/`)**
 - Organized into domain-specific subdirectories, each with `index.html` and corresponding JS
-- Main `index.html` redirects to single-user dashboard
-- Navigation links in header allow switching between dashboards
-- **Single User** (`single-user/`): Default landing page
+- Main `index.html` redirects to User Metrics dashboard
+- Navigation links in header: "User Metrics" and "Repository Metrics"
+- **User Metrics** (`single-user/`): Default landing page
   - Single GitHub username input (JIRA email auto-looked up from mappings)
   - Date range selector
   - GitHub lines changed chart with trend line and tool enablement markers
   - JIRA cycle time chart with trend line and tool enablement markers
   - Collapsible data tables for both metrics
   - Annotation markers: GitHub Copilot (2023-07), Cursor (2025-02)
-- **PR Metrics** (`prs/`): Pull request metrics by repository
+- **Repository Metrics** (`prs/`): Pull request metrics by repository
   - Repository dropdown selector
   - Date range selector
+  - URL parameters for bookmarking (`?repo=...&start=...&end=...`)
   - Average PR time open by month chart with trend line
   - Average time to first review by month chart with trend line
   - Summary stats (total PRs, avg time open, avg reviewers)
   - Collapsible data table with monthly breakdown
-- **User Comparison** (`compare/`): Side-by-side comparison of two users
+  - Expandable rows showing individual PRs with links to GitHub
 - **Individual User Stats** (`user/`): Detailed view for a single user
-- **JIRA Stats** (`jira/`): JIRA cycle time statistics by user
+- **JIRA Stats** (`jira/`): JIRA cycle time statistics (internal use)
 
 ### Directory Structure
 
@@ -326,7 +327,7 @@ The `src/user_mapping/` module handles GitHub to JIRA user mappings:
 
 ### Web Dashboard Data Flow
 
-**Single User View (`/single-user/`)**
+**User Metrics (`/single-user/`)**
 1. Page loads and fetches `/api/user-mappings` to get GitHub→JIRA mappings
 2. User enters GitHub username and date range, clicks Search
 3. Frontend looks up corresponding JIRA email from mappings
@@ -334,23 +335,15 @@ The `src/user_mapping/` module handles GitHub to JIRA user mappings:
 5. Renders JIRA cycle time chart and GitHub lines changed chart with trend lines
 6. Data tables are collapsible (collapsed by default)
 
-**User Comparison (`/compare/`)**
-1. Dashboard loads and requests `/api/users/all/stats`
-2. Backend fetches/returns data for all configured users
-3. Frontend renders side-by-side user cards with charts and tables
-4. "Refresh All" triggers `POST /api/refresh` to update all users
-
-**PR Metrics (`/prs/`)**
-1. Page loads and fetches `/api/pr/repositories` to populate dropdown
-2. User selects repository and date range, clicks Search
-3. Fetches `/api/pr/stats?repo=...` and `/api/pr/stats/monthly?repo=...` in parallel
-4. Renders PR time open chart and time to first review chart with trend lines
-5. Data table shows monthly breakdown with all metrics
-
-**JIRA Stats (`/jira/`)**
-1. Page loads and fetches `/api/jira/stats/by-user` for all users
-2. Displays overall statistics summary and cycle time chart
-3. User table shows cycle time breakdown by user
+**Repository Metrics (`/prs/`)**
+1. Page loads and reads URL parameters (`repo`, `start`, `end`) for bookmarking support
+2. Fetches `/api/pr/repositories` to populate dropdown
+3. If URL has `repo` param, pre-selects repository and loads data automatically
+4. User selects repository and date range, clicks Search (URL updates for bookmarking)
+5. Fetches `/api/pr/stats?repo=...` and `/api/pr/stats/monthly?repo=...` in parallel
+6. Renders PR time open chart and time to first review chart with trend lines
+7. Data table shows monthly breakdown; click a month row to expand and see individual PRs
+8. Each PR links to GitHub (`https://github.com/{repo}/pull/{number}`)
 
 ## Development Notes
 
