@@ -558,7 +558,9 @@ function formatRepoName(repo) {
 function formatMonth(monthStr) {
     const [year, month] = monthStr.split('-');
     const date = new Date(year, parseInt(month) - 1);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+    const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+    const shortYear = year.slice(-2);
+    return `${monthName} '${shortYear}`;
 }
 
 function formatNumber(num) {
